@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>OnlyUp — 오늘 뭐 만들까?</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root{ --bg:#15161f; --ink:#e6e9f5; --dim:#8b90a6; --pu:#bd93f9; --cy:#8be9fd; --gr:#50fa7b; --line:#2a2c3a; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:-apple-system,Segoe UI,Roboto,system-ui,sans-serif; background:var(--tg-theme-bg-color,var(--bg)); color:var(--tg-theme-text-color,var(--ink)); padding:18px 16px calc(18px + env(safe-area-inset-bottom)); }
+  h1{ font-size:20px; margin:6px 0 4px; }
+  .sub{ color:var(--dim); font-size:13px; margin-bottom:14px; }
+  textarea{ width:100%; min-height:130px; background:rgba(255,255,255,.04); color:inherit; border:1px solid var(--line); border-radius:12px; padding:12px; font-size:16px; resize:vertical; }
+  .row{ display:flex; gap:10px; margin-top:12px; }
+  button{ flex:1; padding:14px; border:none; border-radius:12px; font-size:16px; font-weight:700; cursor:pointer; }
+  #mic{ background:rgba(139,233,253,.15); color:var(--cy); border:1px solid var(--cy); }
+  #mic.rec{ background:rgba(255,85,85,.18); color:#ff6b6b; border-color:#ff6b6b; }
+  #send{ background:var(--gr); color:#0b0d13; }
+  #msg{ margin-top:12px; color:var(--dim); font-size:13px; min-height:18px; }
+  .hint{ margin-top:16px; color:var(--dim); font-size:12px; line-height:1.5; }
+  .sig{ text-align:center; color:var(--dim); font-size:11px; margin-top:22px; opacity:.7; }
+</style>
+</head>
+<body>
+  <h1>오늘 무엇을 만들까요?</h1>
+  <div class="sub">아이디어를 말하거나 적으면, 집 PC의 OnlyUp이 알아서 만듭니다.</div>
+  <textarea id="idea" placeholder="예: 공황장애 관리 앱 만들어줘 — 호흡 타이머랑 기록 화면 필요"></textarea>
+  <div class="row">
+    <button id="mic">🎤 말하기</button>
+    <button id="send">▶ PC에서 만들기</button>
+  </div>
+  <div id="msg"></div>
+  <div class="hint">🎙 <b>말하기</b>를 누르고 아이디어를 말하면 글로 바뀝니다. (기기가 음성인식을 지원하지 않으면 직접 입력)<br>▶ <b>PC에서 만들기</b>를 누르면 PC의 OnlyUp이 계획→구현→검토까지 자동 진행하고, 결과를 이 봇으로 알려줍니다.<br>※ PC의 OnlyUp 앱이 켜져 있어야 합니다.</div>
+  <div class="sig">▲ OnlyUp</div>
+<script>
+  var tg = window.Telegram && window.Telegram.WebApp;
+  if(tg){ try{ tg.ready(); tg.expand(); }catch(e){} }
+  function $(id){ return document.getElementById(id); }
+  function msg(t){ $('#msg').textContent = t || ''; }
+  var rec = null;
+  $('#mic').onclick = function(){
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(!SR){ msg('이 기기에선 음성 인식이 안 돼요 — 직접 입력해주세요.'); return; }
+    if(rec){ try{ rec.stop(); }catch(e){} rec=null; $('#mic').classList.remove('rec'); $('#mic').textContent='🎤 말하기'; return; }
+    rec = new SR(); rec.lang='ko-KR'; rec.interimResults=true; rec.continuous=true;
+    var base = $('#idea').value;
+    $('#mic').classList.add('rec'); $('#mic').textContent='🎙 듣는 중… (다시 누르면 종료)'; msg('말하세요…');
+    rec.onresult = function(e){ var t=''; for(var i=0;i<e.results.length;i++){ t += e.results[i][0].transcript+' '; } $('#idea').value = (base+' '+t).trim(); };
+    rec.onerror = function(e){ msg('음성 인식 오류: '+(e.error||'')); };
+    rec.onend = function(){ $('#mic').classList.remove('rec'); $('#mic').textContent='🎤 말하기'; rec=null; };
+    try{ rec.start(); }catch(e){ msg('음성 시작 실패 — 직접 입력해주세요.'); }
+  };
+  $('#send').onclick = function(){
+    var t = $('#idea').value.trim();
+    if(!t){ msg('무엇을 만들지 적거나 말해주세요.'); return; }
+    if(tg && tg.sendData){ try{ tg.sendData(t); }catch(e){ msg('전송 실패: '+e); } }
+    else { msg('이 화면은 텔레그램 봇 메뉴에서 열어야 전송됩니다.'); }
+  };
+</script>
+</body>
+</html>
